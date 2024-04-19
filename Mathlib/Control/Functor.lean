@@ -266,7 +266,7 @@ instance instApplicativeComp : Applicative (Comp F G) :=
 
 end Comp
 
-variable {F : Type u → Type u} [Functor F]
+variable {F : Type u → Type v} [Functor F]
 
 /-- If we consider `x : F α` to, in some sense, contain values of type `α`,
 predicate `Liftp p x` holds iff every value contained by `x` satisfies `p`. -/
@@ -288,6 +288,8 @@ def Liftr {α : Type u} (r : α → α → Prop) (x y : F α) : Prop :=
 def supp {α : Type u} (x : F α) : Set α :=
   { y : α | ∀ ⦃p⦄, Liftp p x → p y }
 #align functor.supp Functor.supp
+
+#check supp
 
 theorem of_mem_supp {α : Type u} {x : F α} {p : α → Prop} (h : Liftp p x) : ∀ y ∈ supp x, p y :=
   fun _ hy => hy h

@@ -97,7 +97,7 @@ instance {α : TypeVec n} [Inhabited q.P.A] [∀ i : Fin2 n, Inhabited (α i)] :
   ⟨Quot.mk _ default⟩
 
 /-- maps every element of the W type to a canonical representative -/
-def mRepr {α : TypeVec n} : q.P.M α → q.P.M α :=
+def mRepr {α : TypeVec.{u} n} : q.P.M α → q.P.M α :=
   corecF (abs ∘ M.dest q.P)
 set_option linter.uppercaseLean3 false in
 #align mvqpf.Mrepr MvQPF.mRepr

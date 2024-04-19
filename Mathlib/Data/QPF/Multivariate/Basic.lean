@@ -83,7 +83,7 @@ open MvFunctor
 /-- Multivariate quotients of polynomial functors.
 -/
 class MvQPF {n : ℕ} (F : TypeVec.{u} n → Type*) [MvFunctor F] where
-  P : MvPFunctor.{u} n
+  P : MvPFunctor.{u, u} n
   abs : ∀ {α}, P α → F α
   repr : ∀ {α}, F α → P α
   abs_repr : ∀ {α} (x : F α), abs (repr x) = x

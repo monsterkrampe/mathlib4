@@ -18,7 +18,7 @@ pfunctor/M.lean.)
 -- "W", "Idx"
 set_option linter.uppercaseLean3 false
 
-universe u v v₁ v₂ v₃
+universe u v v₁ v₂ v₃ w
 
 /-- A polynomial functor `P` is given by a type `A` and a family `B` of types over `A`. `P` maps
 any type `α` to a new type `P α`, which is defined as the sigma type `Σ x, P.B x → α`.
@@ -30,7 +30,7 @@ elements of `α`.
 @[pp_with_univ]
 structure PFunctor where
   /-- The head type -/
-  A : Type u
+  A : Type w
   /-- The child family of types -/
   B : A → Type u
 #align pfunctor PFunctor
@@ -40,7 +40,7 @@ namespace PFunctor
 instance : Inhabited PFunctor :=
   ⟨⟨default, default⟩⟩
 
-variable (P : PFunctor.{u}) {α : Type v₁} {β : Type v₂} {γ : Type v₃}
+variable (P : PFunctor.{w,u}) {α : Type v₁} {β : Type v₂} {γ : Type v₃}
 
 /-- Applying `P` to an object of `Type` -/
 @[coe]
@@ -48,7 +48,7 @@ def Obj (α : Type v) :=
   Σ x : P.A, P.B x → α
 #align pfunctor.obj PFunctor.Obj
 
-instance : CoeFun PFunctor.{u} (fun _ => Type v → Type (max u v)) where
+instance : CoeFun PFunctor.{w,u} (fun _ => Type v → Type (max u v w)) where
   coe := Obj
 
 /-- Applying `P` to a morphism of `Type` -/
@@ -60,7 +60,7 @@ instance Obj.inhabited [Inhabited P.A] [Inhabited α] : Inhabited (P α) :=
   ⟨⟨default, default⟩⟩
 #align pfunctor.obj.inhabited PFunctor.Obj.inhabited
 
-instance : Functor.{v, max u v} P.Obj where map := @map P
+instance : Functor.{v, max u v w} P.Obj where map := @map P
 
 /-- We prefer `PFunctor.map` to `Functor.map` because it is universe-polymorphic. -/
 @[simp]
@@ -82,7 +82,7 @@ protected theorem map_map (f : α → β) (g : β → γ) :
     ∀ x : P α, P.map g (P.map f x) = P.map (g ∘ f) x := fun ⟨_, _⟩ => rfl
 #align pfunctor.comp_map PFunctor.map_map
 
-instance : LawfulFunctor.{v, max u v} P.Obj where
+instance : LawfulFunctor.{v, max u v w} P.Obj where
   map_const := rfl
   id_map x := P.id_map x
   comp_map f g x := P.map_map f g x |>.symm
@@ -170,17 +170,17 @@ Composition of polynomial functors.
 namespace PFunctor
 
 /-- functor composition for polynomial functors -/
-def comp (P₂ P₁ : PFunctor.{u}) : PFunctor.{u} :=
+def comp (P₂ P₁ : PFunctor.{w,u}) : PFunctor.{w, max u w} :=
   ⟨Σ a₂ : P₂.1, P₂.2 a₂ → P₁.1, fun a₂a₁ => Σ u : P₂.2 a₂a₁.1, P₁.2 (a₂a₁.2 u)⟩
 #align pfunctor.comp PFunctor.comp
 
 /-- constructor for composition -/
-def comp.mk (P₂ P₁ : PFunctor.{u}) {α : Type} (x : P₂ (P₁ α)) : comp P₂ P₁ α :=
+def comp.mk (P₂ P₁ : PFunctor.{w,u}) {α : Type} (x : P₂ (P₁ α)) : comp P₂ P₁ α :=
   ⟨⟨x.1, Sigma.fst ∘ x.2⟩, fun a₂a₁ => (x.2 a₂a₁.1).2 a₂a₁.2⟩
 #align pfunctor.comp.mk PFunctor.comp.mk
 
 /-- destructor for composition -/
-def comp.get (P₂ P₁ : PFunctor.{u}) {α : Type} (x : comp P₂ P₁ α) : P₂ (P₁ α) :=
+def comp.get (P₂ P₁ : PFunctor.{w,u}) {α : Type} (x : comp P₂ P₁ α) : P₂ (P₁ α) :=
   ⟨x.1.1, fun a₂ => ⟨x.1.2 a₂, fun a₁ => x.2 ⟨a₂, a₁⟩⟩⟩
 #align pfunctor.comp.get PFunctor.comp.get
 
@@ -191,11 +191,11 @@ Lifting predicates and relations.
 -/
 namespace PFunctor
 
-variable {P : PFunctor.{u}}
+variable {P : PFunctor.{w,u}}
 
 open Functor
 
-theorem liftp_iff {α : Type u} (p : α → Prop) (x : P α) :
+theorem liftp_iff {α : Type w} (p : α → Prop) (x : P α) :
     Liftp p x ↔ ∃ a f, x = ⟨a, f⟩ ∧ ∀ i, p (f i) := by
   constructor
   · rintro ⟨y, hy⟩
@@ -208,8 +208,8 @@ theorem liftp_iff {α : Type u} (p : α → Prop) (x : P α) :
   rw [xeq]; rfl
 #align pfunctor.liftp_iff PFunctor.liftp_iff
 
-theorem liftp_iff' {α : Type u} (p : α → Prop) (a : P.A) (f : P.B a → α) :
-    @Liftp.{u} P.Obj _ α p ⟨a, f⟩ ↔ ∀ i, p (f i) := by
+theorem liftp_iff' {α : Type w} (p : α → Prop) (a : P.A) (f : P.B a → α) :
+    @Liftp.{w} P.Obj _ α p ⟨a, f⟩ ↔ ∀ i, p (f i) := by
   simp only [liftp_iff, Sigma.mk.inj_iff]; constructor <;> intro h
   · rcases h with ⟨a', f', heq, h'⟩
     cases heq
@@ -217,7 +217,7 @@ theorem liftp_iff' {α : Type u} (p : α → Prop) (a : P.A) (f : P.B a → α) 
   repeat' first |constructor|assumption
 #align pfunctor.liftp_iff' PFunctor.liftp_iff'
 
-theorem liftr_iff {α : Type u} (r : α → α → Prop) (x y : P α) :
+theorem liftr_iff {α : Type w} (r : α → α → Prop) (x y : P α) :
     Liftr r x y ↔ ∃ a f₀ f₁, x = ⟨a, f₀⟩ ∧ y = ⟨a, f₁⟩ ∧ ∀ i, r (f₀ i) (f₁ i) := by
   constructor
   · rintro ⟨u, xeq, yeq⟩
@@ -241,8 +241,8 @@ theorem liftr_iff {α : Type u} (r : α → α → Prop) (x y : P α) :
 
 open Set
 
-theorem supp_eq {α : Type u} (a : P.A) (f : P.B a → α) :
-    @supp.{u} P.Obj _ α (⟨a, f⟩ : P α) = f '' univ := by
+theorem supp_eq {α : Type w} (a : P.A) (f : P.B a → α) :
+    @supp.{w} P.Obj _ α (⟨a, f⟩ : P α) = f '' univ := by
   ext x; simp only [supp, image_univ, mem_range, mem_setOf_eq]
   constructor <;> intro h
   · apply @h fun x => ∃ y : P.B a, f y = x

@@ -18,7 +18,7 @@ they guarantee that occurrences of `α` are positive.
 -/
 
 
-universe u v
+universe u v w 
 
 open MvFunctor
 
@@ -27,24 +27,28 @@ open MvFunctor
 @[pp_with_univ]
 structure MvPFunctor (n : ℕ) where
   /-- The head type -/
-  A : Type u
+  A : Type w
   /-- The child family of types -/
   B : A → TypeVec.{u} n
 #align mvpfunctor MvPFunctor
+
+#check MvPFunctor
 
 namespace MvPFunctor
 
 open MvFunctor (LiftP LiftR)
 
-variable {n m : ℕ} (P : MvPFunctor.{u} n)
+variable {n m : ℕ} (P : MvPFunctor.{w,u} n)
 
 /-- Applying `P` to an object of `Type` -/
 @[coe]
-def Obj (α : TypeVec.{u} n) : Type u :=
+def Obj (α : TypeVec.{v} n) : Type max u v w :=
   Σ a : P.A, P.B a ⟹ α
 #align mvpfunctor.obj MvPFunctor.Obj
 
-instance : CoeFun (MvPFunctor.{u} n) (fun _ => TypeVec.{u} n → Type u) where
+#check Obj
+
+instance : CoeFun (MvPFunctor.{w,u} n) (fun _ => TypeVec.{v} n → Type max u v w) where
   coe := Obj
 
 /-- Applying `P` to a morphism of `Type` -/
@@ -59,7 +63,7 @@ instance Obj.inhabited {α : TypeVec n} [Inhabited P.A] [∀ i, Inhabited (α i)
   ⟨⟨default, fun _ _ => default⟩⟩
 #align mvpfunctor.obj.inhabited MvPFunctor.Obj.inhabited
 
-instance : MvFunctor.{u} P.Obj :=
+instance : MvFunctor.{max u v w, v} P.Obj :=
   ⟨@MvPFunctor.map n P⟩
 
 theorem map_eq {α β : TypeVec n} (g : α ⟹ β) (a : P.A) (f : P.B a ⟹ α) :
@@ -76,7 +80,7 @@ theorem comp_map {α β γ : TypeVec n} (f : α ⟹ β) (g : β ⟹ γ) :
   | ⟨_, _⟩ => rfl
 #align mvpfunctor.comp_map MvPFunctor.comp_map
 
-instance : LawfulMvFunctor.{u} P.Obj where
+instance : LawfulMvFunctor P.Obj where
   id_map := @id_map _ P
   comp_map := @comp_map _ P
 
@@ -122,12 +126,14 @@ theorem const.mk_get (x : const n A α) : const.mk n (const.get x) = x := by
 end Const
 
 /-- Functor composition on polynomial functors -/
-def comp (P : MvPFunctor.{u} n) (Q : Fin2 n → MvPFunctor.{u} m) : MvPFunctor m where
+def comp (P : MvPFunctor.{w, u} n) (Q : Fin2 n → MvPFunctor.{w, u} m) : MvPFunctor m where
   A := Σ a₂ : P.1, ∀ i, P.2 a₂ i → (Q i).1
   B a i := Σ(j : _) (b : P.2 a.1 j), (Q j).2 (a.snd j b) i
 #align mvpfunctor.comp MvPFunctor.comp
 
-variable {P} {Q : Fin2 n → MvPFunctor.{u} m} {α β : TypeVec.{u} m}
+#check comp
+
+variable {P} {Q : Fin2 n → MvPFunctor.{w, u} m} {α β : TypeVec.{v} m}
 
 /-- Constructor for functor composition -/
 def comp.mk (x : P (fun i => Q i α)) : comp P Q α :=
@@ -171,7 +177,7 @@ theorem liftP_iff {α : TypeVec n} (p : ∀ ⦃i⦄, α i → Prop) (x : P α) :
 #align mvpfunctor.liftp_iff MvPFunctor.liftP_iff
 
 theorem liftP_iff' {α : TypeVec n} (p : ∀ ⦃i⦄, α i → Prop) (a : P.A) (f : P.B a ⟹ α) :
-    @LiftP.{u} _ P.Obj _ α p ⟨a, f⟩ ↔ ∀ i x, p (f i x) := by
+    @LiftP _ P.Obj _ α p ⟨a, f⟩ ↔ ∀ i x, p (f i x) := by
   simp only [liftP_iff, Sigma.mk.inj_iff]; constructor
   · rintro ⟨_, _, ⟨⟩, _⟩
     assumption
@@ -204,7 +210,7 @@ theorem liftR_iff {α : TypeVec n} (r : ∀ ⦃i⦄, α i → α i → Prop) (x 
 open Set MvFunctor
 
 theorem supp_eq {α : TypeVec n} (a : P.A) (f : P.B a ⟹ α) (i) :
-    @supp.{u} _ P.Obj _ α (⟨a, f⟩ : P α) i = f i '' univ := by
+    @supp _ P.Obj _ α (⟨a, f⟩ : P α) i = f i '' univ := by
   ext x; simp only [supp, image_univ, mem_range, mem_setOf_eq]
   constructor <;> intro h
   · apply @h fun i x => ∃ y : P.B a i, f i y = x
@@ -226,7 +232,7 @@ namespace MvPFunctor
 
 open TypeVec
 
-variable {n : ℕ} (P : MvPFunctor.{u} (n + 1))
+variable {n : ℕ} (P : MvPFunctor.{w, u} (n + 1))
 
 /-- Split polynomial functor, get an n-ary functor
 from an `n+1`-ary functor -/

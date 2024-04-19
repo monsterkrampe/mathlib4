@@ -49,16 +49,17 @@ elements of `F α` are represented by pairs `⟨a, f⟩`, where `a` is the shape
 `f` indexes the relevant elements of `α`, in a suitably natural manner.
 -/
 class QPF (F : Type u → Type u) [Functor F] where
-  P : PFunctor.{u}
+  P : PFunctor.{u,u}
   abs : ∀ {α}, P α → F α
   repr : ∀ {α}, F α → P α
   abs_repr : ∀ {α} (x : F α), abs (repr x) = x
   abs_map : ∀ {α β} (f : α → β) (p : P α), abs (P.map f p) = f <$> abs p
 #align qpf QPF
+#print QPF
 
 namespace QPF
 
-variable {F : Type u → Type u} [Functor F] [q : QPF F]
+variable {F : Type u → Type u} [Functor F] [q : QPF.{u} F]
 
 open Functor (Liftp Liftr)
 

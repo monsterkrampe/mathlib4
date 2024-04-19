@@ -46,7 +46,7 @@ its valid paths to values of `α`
 -/
 
 
-universe u v
+universe u v w
 
 namespace MvPFunctor
 
@@ -54,10 +54,10 @@ open TypeVec
 
 open MvFunctor
 
-variable {n : ℕ} (P : MvPFunctor.{u} (n + 1))
+variable {n : ℕ} (P : MvPFunctor.{w, u} (n + 1))
 
 /-- A path from the root of a tree to one of its node -/
-inductive WPath : P.last.W → Fin2 n → Type u
+inductive WPath : P.last.W → Fin2 n → Type max u w
   | root (a : P.A) (f : P.last.B a → P.last.W) (i : Fin2 n) (c : P.drop.B a i) : WPath ⟨a, f⟩ i
   | child (a : P.A) (f : P.last.B a → P.last.W) (i : Fin2 n) (j : P.last.B a)
     (c : WPath (f j) i) : WPath ⟨a, f⟩ i
@@ -131,7 +131,7 @@ set_option linter.uppercaseLean3 false in
 
 /-- W-type of `P` -/
 -- Porting note(#5171): used to have @[nolint has_nonempty_instance]
-def W (α : TypeVec n) : Type _ :=
+def W (α : TypeVec.{v} n) : Type max u v w :=
   P.wp α
 set_option linter.uppercaseLean3 false in
 #align mvpfunctor.W MvPFunctor.W
@@ -272,12 +272,12 @@ set_option linter.uppercaseLean3 false in
 /-- Constructor of a value of `P.obj (α ::: β)` from components.
 Useful to avoid complicated type annotation -/
 @[reducible]
-def objAppend1 {α : TypeVec n} {β : Type u} (a : P.A) (f' : P.drop.B a ⟹ α)
+def objAppend1 {α : TypeVec n} {β : Type max u w} (a : P.A) (f' : P.drop.B a ⟹ α)
     (f : P.last.B a → β) : P (α ::: β) :=
   ⟨a, splitFun f' f⟩
 #align mvpfunctor.obj_append1 MvPFunctor.objAppend1
 
-theorem map_objAppend1 {α γ : TypeVec n} (g : α ⟹ γ) (a : P.A) (f' : P.drop.B a ⟹ α)
+theorem map_objAppend1 {α γ : TypeVec.{max u w} n} (g : α ⟹ γ) (a : P.A) (f' : P.drop.B a ⟹ α)
     (f : P.last.B a → P.W α) :
     appendFun g (P.wMap g) <$$> P.objAppend1 a f' f =
       P.objAppend1 a (g ⊚ f') fun x => P.wMap g (f x) :=
@@ -292,13 +292,13 @@ the qpf axioms are expressed in terms of `map` on `P`.
 
 
 /-- Constructor for the W-type of `P` -/
-def wMk' {α : TypeVec n} : P (α ::: P.W α) → P.W α
+def wMk' {α : TypeVec.{max u w} n} : P (α ::: P.W α) → P.W α
   | ⟨a, f⟩ => P.wMk a (dropFun f) (lastFun f)
 set_option linter.uppercaseLean3 false in
 #align mvpfunctor.W_mk' MvPFunctor.wMk'
 
 /-- Destructor for the W-type of `P` -/
-def wDest' {α : TypeVec.{u} n} : P.W α → P (α.append1 (P.W α)) :=
+def wDest' {α : TypeVec.{max u w} n} : P.W α → P (α.append1 (P.W α)) :=
   P.wRec fun a f' f _ => ⟨a, splitFun f' f⟩
 set_option linter.uppercaseLean3 false in
 #align mvpfunctor.W_dest' MvPFunctor.wDest'
@@ -308,7 +308,7 @@ theorem wDest'_wMk {α : TypeVec n} (a : P.A) (f' : P.drop.B a ⟹ α) (f : P.la
 set_option linter.uppercaseLean3 false in
 #align mvpfunctor.W_dest'_W_mk MvPFunctor.wDest'_wMk
 
-theorem wDest'_wMk' {α : TypeVec n} (x : P (α.append1 (P.W α))) : P.wDest' (P.wMk' x) = x := by
+theorem wDest'_wMk' {α : TypeVec.{max u w} n} (x : P (α.append1 (P.W α))) : P.wDest' (P.wMk' x) = x := by
   cases' x with a f; rw [wMk', wDest'_wMk, split_dropFun_lastFun]
 set_option linter.uppercaseLean3 false in
 #align mvpfunctor.W_dest'_W_mk' MvPFunctor.wDest'_wMk'

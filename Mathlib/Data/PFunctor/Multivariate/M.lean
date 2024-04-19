@@ -49,7 +49,7 @@ that `A` is a possibly infinite tree.
 
 set_option linter.uppercaseLean3 false
 
-universe u
+universe u v w
 
 open MvFunctor
 
@@ -57,10 +57,12 @@ namespace MvPFunctor
 
 open TypeVec
 
-variable {n : ℕ} (P : MvPFunctor.{u} (n + 1))
+variable {n : ℕ} (P : MvPFunctor.{w, u} (n + 1))
+
+#print PFunctor.M
 
 /-- A path from the root of a tree to one of its node -/
-inductive M.Path : P.last.M → Fin2 n → Type u
+inductive M.Path : P.last.M → Fin2 n → Type max u w
   | root  (x : P.last.M)
           (a : P.A)
           (f : P.last.B a → P.last.M)
@@ -97,10 +99,14 @@ def mp : MvPFunctor n where
   B := M.Path P
 #align mvpfunctor.Mp MvPFunctor.mp
 
+#check mp
+
 /-- `n`-ary M-type for `P` -/
-def M (α : TypeVec n) : Type _ :=
+def M (α : TypeVec.{v} n) : Type max u v w :=
   P.mp α
 #align mvpfunctor.M MvPFunctor.M
+
+#check M
 
 instance mvfunctorM : MvFunctor P.M := by delta M; infer_instance
 #align mvpfunctor.mvfunctor_M MvPFunctor.mvfunctorM
@@ -112,7 +118,7 @@ instance inhabitedM {α : TypeVec _} [I : Inhabited P.A] [∀ i : Fin2 n, Inhabi
 
 /-- construct through corecursion the shape of an M-type
 without its contents -/
-def M.corecShape {β : Type u} (g₀ : β → P.A) (g₂ : ∀ b : β, P.last.B (g₀ b) → β) :
+def M.corecShape {β : Type max u w} (g₀ : β → P.A) (g₂ : ∀ b : β, P.last.B (g₀ b) → β) :
     β → P.last.M :=
   PFunctor.M.corec fun b => ⟨g₀ b, g₂ b⟩
 #align mvpfunctor.M.corec_shape MvPFunctor.M.corecShape
@@ -126,8 +132,8 @@ def castLastB {a a' : P.A} (h : a = a') : P.last.B a → P.last.B a' := fun b =>
 #align mvpfunctor.cast_lastB MvPFunctor.castLastB
 
 /-- Using corecursion, construct the contents of an M-type -/
-def M.corecContents {α : TypeVec.{u} n}
-    {β : Type u}
+def M.corecContents {α : TypeVec n}
+    {β : Type max u w}
     (g₀ : β → P.A)
     (g₁ : ∀ b : β, P.drop.B (g₀ b) ⟹ α)
     (g₂ : ∀ b : β, P.last.B (g₀ b) → β)
@@ -154,13 +160,13 @@ def M.corecContents {α : TypeVec.{u} n}
 #align mvpfunctor.M.corec_contents MvPFunctor.M.corecContents
 
 /-- Corecursor for M-type of `P` -/
-def M.corec' {α : TypeVec n} {β : Type u} (g₀ : β → P.A) (g₁ : ∀ b : β, P.drop.B (g₀ b) ⟹ α)
+def M.corec' {α : TypeVec n} {β : Type max u w} (g₀ : β → P.A) (g₁ : ∀ b : β, P.drop.B (g₀ b) ⟹ α)
     (g₂ : ∀ b : β, P.last.B (g₀ b) → β) : β → P.M α := fun b =>
   ⟨M.corecShape P g₀ g₂ b, M.corecContents P g₀ g₁ g₂ _ _ rfl⟩
 #align mvpfunctor.M.corec' MvPFunctor.M.corec'
 
 /-- Corecursor for M-type of `P` -/
-def M.corec {α : TypeVec n} {β : Type u} (g : β → P (α.append1 β)) : β → P.M α :=
+def M.corec {α : TypeVec n} {β : Type max u w} (g : β → P (α.append1 β)) : β → P.M α :=
   M.corec' P (fun b => (g b).fst) (fun b => dropFun (g b).snd) fun b => lastFun (g b).snd
 #align mvpfunctor.M.corec MvPFunctor.M.corec
 
@@ -177,18 +183,18 @@ def M.pathDestRight {α : TypeVec n} {x : P.last.M} {a : P.A} {f : P.last.B a �
 #align mvpfunctor.M.path_dest_right MvPFunctor.M.pathDestRight
 
 /-- Destructor for M-type of `P` -/
-def M.dest' {α : TypeVec n} {x : P.last.M} {a : P.A} {f : P.last.B a → P.last.M}
+def M.dest' {α : TypeVec.{max u w} n} {x : P.last.M} {a : P.A} {f : P.last.B a → P.last.M}
     (h : PFunctor.M.dest x = ⟨a, f⟩) (f' : M.Path P x ⟹ α) : P (α.append1 (P.M α)) :=
   ⟨a, splitFun (M.pathDestLeft P h f') fun x => ⟨f x, M.pathDestRight P h f' x⟩⟩
 #align mvpfunctor.M.dest' MvPFunctor.M.dest'
 
 /-- Destructor for M-types -/
-def M.dest {α : TypeVec n} (x : P.M α) : P (α ::: P.M α) :=
+def M.dest {α : TypeVec.{max u w} n} (x : P.M α) : P (α ::: P.M α) :=
   M.dest' P (Sigma.eta <| PFunctor.M.dest x.fst).symm x.snd
 #align mvpfunctor.M.dest MvPFunctor.M.dest
 
 /-- Constructor for M-types -/
-def M.mk {α : TypeVec n} : P (α.append1 (P.M α)) → P.M α :=
+def M.mk {α : TypeVec.{max u w} n} : P (α.append1 (P.M α)) → P.M α :=
   M.corec _ fun i => appendFun id (M.dest P) <$$> i
 #align mvpfunctor.M.mk MvPFunctor.M.mk
 
@@ -204,13 +210,13 @@ theorem M.dest_eq_dest' {α : TypeVec n} {x : P.last.M} {a : P.A}
   M.dest'_eq_dest' _ _ _ _
 #align mvpfunctor.M.dest_eq_dest' MvPFunctor.M.dest_eq_dest'
 
-theorem M.dest_corec' {α : TypeVec.{u} n} {β : Type u} (g₀ : β → P.A)
+theorem M.dest_corec' {α : TypeVec.{max u w} n} {β : Type max u w} (g₀ : β → P.A)
     (g₁ : ∀ b : β, P.drop.B (g₀ b) ⟹ α) (g₂ : ∀ b : β, P.last.B (g₀ b) → β) (x : β) :
     M.dest P (M.corec' P g₀ g₁ g₂ x) = ⟨g₀ x, splitFun (g₁ x) (M.corec' P g₀ g₁ g₂ ∘ g₂ x)⟩ :=
   rfl
 #align mvpfunctor.M.dest_corec' MvPFunctor.M.dest_corec'
 
-theorem M.dest_corec {α : TypeVec n} {β : Type u} (g : β → P (α.append1 β)) (x : β) :
+theorem M.dest_corec {α : TypeVec.{max u w} n} {β : Type max u w} (g : β → P (α.append1 β)) (x : β) :
     M.dest P (M.corec P g x) = appendFun id (M.corec P g) <$$> g x := by
   trans
   apply M.dest_corec'
@@ -326,7 +332,7 @@ theorem M.dest_map {α β : TypeVec n} (g : α ⟹ β) (x : P.M α) :
     rw [M.dest, M.dest', map_eq, appendFun_comp_splitFun]
 #align mvpfunctor.M.dest_map MvPFunctor.M.dest_map
 
-theorem M.map_dest {α β : TypeVec n} (g : (α ::: P.M α) ⟹ (β ::: P.M β)) (x : P.M α)
+theorem M.map_dest {α β : TypeVec.{max u w} n} (g : (α ::: P.M α) ⟹ (β ::: P.M β)) (x : P.M α)
     (h : ∀ x : P.M α, lastFun g x = (dropFun g <$$> x : P.M β)) :
     g <$$> M.dest P x = M.dest P (dropFun g <$$> x) := by
   rw [M.dest_map]; congr

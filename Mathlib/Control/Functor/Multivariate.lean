@@ -32,6 +32,8 @@ class MvFunctor {n : ℕ} (F : TypeVec n → Type*) where
   map : ∀ {α β : TypeVec n}, α ⟹ β → F α → F β
 #align mvfunctor MvFunctor
 
+#check MvFunctor
+
 /-- Multivariate map, if `f : α ⟹ β` and `x : F α` then `f <$$> x : F β` -/
 scoped[MvFunctor] infixr:100 " <$$> " => MvFunctor.map
 
